@@ -3,15 +3,24 @@
 #include <blake2.h>
 #include <ecrypt-sync.h>
 
+void printHex(uint8_t *buf, uint16_t sz) {
+    for (int i = 0; i < sz; i++) {
+        printf("%02x ", buf[i]);
+        if(i%16 == 15)
+            puts("");
+        else if(i%16 == 7)
+            printf(" ");
+    }
+    puts("\n");
+}
+
 int main(int argc, const char *argv[])
 {
     puts("BLAKE TEST VECTOR\n");
     char str[]="The quick brown fox jumps over the lazy dog";
     uint8_t out[512/8];
     blake2b(out, str,NULL, 512/8, strlen(str), 0);
-    for (int i = 0; i < sizeof(out); i++) {
-        printf("%02x ", out[i]);
-    }
+    printHex(out, sizeof(out));
 
     puts("\nCHACHA TEST VECTOR\n");
     ECRYPT_init();
@@ -25,8 +34,7 @@ int main(int argc, const char *argv[])
     u8 buf[128];
     ECRYPT_keystream_bytes(&ctx, buf, 128);
 
-    for (int i = 0; i < 128; i++) {
-        printf("%02x ", buf[i]);
-    }
+    printHex(buf, 128);
+
     return 0;
 }
