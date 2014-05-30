@@ -39,10 +39,8 @@ int main(int argc, const char *argv[])
     ECRYPT_ivsetup(&ctx, iv);
     u8 buf[256];
 
-    for(int i=0; i<75; i++) {
-        ECRYPT_keystream_bytes(&ctx, buf, 1);
-        printHex(buf, 1);
-    }
+    ECRYPT_keystream_bytes(&ctx, buf, 256);
+    printHex(buf, 256);
     //ECRYPT_encrypt_bytes(&ctx, msg, buf, strlen(msg));
     //printHex(buf,strlen(msg));
     ////--decrypt

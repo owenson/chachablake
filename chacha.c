@@ -90,25 +90,24 @@ void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
 // rewritten to keep in sync - no need to make requests that are
 // multiple of 64 bytes to keep in sync, just call at will
 // reinit key or iv using above funcs to reset stream
+// maximum is 2^32 bytes per call
+/* stopping at 2^70 bytes per nonce is user's responsibility */
 void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
 {
-  int i;
+  u32 i=0;
 
   if (!bytes) return;
-  for(i=0; i<bytes; i++) {
+  while(i<bytes) {
     // need more keystream bytes?
     if(keystream_idx == 64) {
         salsa20_wordtobyte(keystream,x->input);
         // advance IV
         x->input[12] = PLUSONE(x->input[12]);
-        if (!x->input[12]) {
-          x->input[13] = PLUSONE(x->input[13]);
-          /* stopping at 2^70 bytes per nonce is user's responsibility */
-        }
+        if (!x->input[12]) x->input[13] = PLUSONE(x->input[13]);
         keystream_idx = 0;
     }
 
-    for(;i<bytes && keystream_idx < 64; i++)
+    for(;i<bytes && keystream_idx < 64; i++) 
         c[i] = m[i] ^ keystream[keystream_idx++];
   }
 }
