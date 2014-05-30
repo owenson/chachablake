@@ -44,15 +44,10 @@ static void salsa20_wordtobyte(u8 output[64],const u32 input[16])
   for (i = 0;i < 16;++i) U32TO8_LITTLE(output + 4 * i,x[i]);
 }
 
-void ECRYPT_init(void)
-{
-  return;
-}
-
 static const char sigma[16] = "expand 32-byte k";
 static const char tau[16] = "expand 16-byte k";
 
-void ECRYPT_keysetup(ECRYPT_ctx *x,const u8 *k,u32 kbits,u32 ivbits)
+void chacha_init(CHACHA_ctx *x,const u8 *k,u32 kbits,u32 *ivbits)
 {
   const char *constants;
 
@@ -75,10 +70,13 @@ void ECRYPT_keysetup(ECRYPT_ctx *x,const u8 *k,u32 kbits,u32 ivbits)
   x->input[2] = U8TO32_LITTLE(constants + 8);
   x->input[3] = U8TO32_LITTLE(constants + 12);
 
+  if(ivbits != NULL)
+      chacha_ivsetup(x, ivbits);
+
   keystream_idx = 64;
 }
 
-void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
+void chacha_ivsetup(CHACHA_ctx *x,const u8 *iv)
 {
   x->input[12] = 0;
   x->input[13] = 0;
@@ -92,7 +90,8 @@ void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
 // reinit key or iv using above funcs to reset stream
 // maximum is 2^32 bytes per call
 /* stopping at 2^70 bytes per nonce is user's responsibility */
-void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
+// remember: stream cipher .. encrypt = decrypt, symmetrical.
+void chacha_encryptdecrypt(CHACHA_ctx *x,const u8 *m,u8 *c,u32 bytes)
 {
   u32 i=0;
 
@@ -112,15 +111,10 @@ void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
   }
 }
 
-void ECRYPT_decrypt_bytes(ECRYPT_ctx *x,const u8 *c,u8 *m,u32 bytes)
-{
-  ECRYPT_encrypt_bytes(x,c,m,bytes);
-}
-
-void ECRYPT_keystream_bytes(ECRYPT_ctx *x,u8 *stream,u32 bytes)
+void chacha_keystream(CHACHA_ctx *x,u8 *stream,u32 bytes)
 {
   u32 i;
   for (i = 0;i < bytes;++i) stream[i] = 0;
-  ECRYPT_encrypt_bytes(x,stream,stream,bytes);
+  chacha_encryptdecrypt(x,stream,stream,bytes);
 }
 
