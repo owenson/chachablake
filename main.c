@@ -25,21 +25,28 @@ int main(int argc, const char *argv[])
     puts("\nCHACHA TEST VECTOR\n");
 
     CHACHA_ctx ctx;
-    char msg[] = "Hello I'm a lumberjack";
-    u8 key[16]={0x7d, 0x6d, 0x3d, 0x4b, 0xa6, 0xa9, 0x53, 0x11, 0x45, 0x48, 0x60, 0x4f, 0x5a, 0x9c, 0xf4, 0x04};
+    
+    u8 key[16];
     u8 iv[8];
+
+    // uncomment to generate random key and iv
     //FILE *rnd = fopen("/dev/urandom", "rb");
     //if(!rnd) return 1;
     //fread(iv, 8, 1, rnd);
     //fread(key, 16, 1, rnd);
     //printHex(iv,8);
+
+    //zero key and iv and print test vectors
     memset(iv,0,8);
     memset(key,0,16);
     chacha_init(&ctx, key, 128, (u32*)iv);
-    u8 buf[256];
 
+    u8 buf[256];
     chacha_keystream(&ctx, buf, 256);
     printHex(buf, 256);
+
+    // sample message encrypt/decrypt
+    //char msg[] = "Hello I'm a lumberjack";
     //ECRYPT_encrypt_bytes(&ctx, msg, buf, strlen(msg));
     //printHex(buf,strlen(msg));
     ////--decrypt
