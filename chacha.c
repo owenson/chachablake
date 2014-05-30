@@ -21,6 +21,9 @@ Public domain.
 
 #define ROUNDS 8
 
+u8 keystream[64];
+u8 keystream_idx = 64;
+
 static void salsa20_wordtobyte(u8 output[64],const u32 input[16])
 {
   u32 x[16];
@@ -71,6 +74,8 @@ void ECRYPT_keysetup(ECRYPT_ctx *x,const u8 *k,u32 kbits,u32 ivbits)
   x->input[1] = U8TO32_LITTLE(constants + 4);
   x->input[2] = U8TO32_LITTLE(constants + 8);
   x->input[3] = U8TO32_LITTLE(constants + 12);
+
+  keystream_idx = 64;
 }
 
 void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
@@ -79,29 +84,32 @@ void ECRYPT_ivsetup(ECRYPT_ctx *x,const u8 *iv)
   x->input[13] = 0;
   x->input[14] = U8TO32_LITTLE(iv + 0);
   x->input[15] = U8TO32_LITTLE(iv + 4);
+  keystream_idx = 64;
 }
 
+// rewritten to keep in sync - no need to make requests that are
+// multiple of 64 bytes to keep in sync, just call at will
+// reinit key or iv using above funcs to reset stream
 void ECRYPT_encrypt_bytes(ECRYPT_ctx *x,const u8 *m,u8 *c,u32 bytes)
 {
-  u8 output[64];
   int i;
 
   if (!bytes) return;
-  for (;;) {
-    salsa20_wordtobyte(output,x->input);
-    x->input[12] = PLUSONE(x->input[12]);
-    if (!x->input[12]) {
-      x->input[13] = PLUSONE(x->input[13]);
-      /* stopping at 2^70 bytes per nonce is user's responsibility */
+  for(i=0; i<bytes; i++) {
+    // need more keystream bytes?
+    if(keystream_idx == 64) {
+        salsa20_wordtobyte(keystream,x->input);
+        // advance IV
+        x->input[12] = PLUSONE(x->input[12]);
+        if (!x->input[12]) {
+          x->input[13] = PLUSONE(x->input[13]);
+          /* stopping at 2^70 bytes per nonce is user's responsibility */
+        }
+        keystream_idx = 0;
     }
-    if (bytes <= 64) {
-      for (i = 0;i < bytes;++i) c[i] = m[i] ^ output[i];
-      return;
-    }
-    for (i = 0;i < 64;++i) c[i] = m[i] ^ output[i];
-    bytes -= 64;
-    c += 64;
-    m += 64;
+
+    for(;i<bytes && keystream_idx < 64; i++)
+        c[i] = m[i] ^ keystream[keystream_idx++];
   }
 }
 
